@@ -18,9 +18,14 @@ import {
   LogOut,
   ChevronDown,
   ShieldCheck,
-  BellRing
+  BellRing,
+  User,
+  KeyRound,
+  LogIn
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext.tsx';
+import { LoginModal } from '../auth/LoginModal.tsx';
+import { UserProfileModal } from '../auth/UserProfileModal.tsx';
 
 export type NavTab =
   | 'dashboard'
@@ -43,7 +48,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   onTabChange,
   children
 }) => {
-  const { currentUser, availableUsers, loginAs, logout } = useAuth();
+  const { currentUser, availableUsers, loginAs, logout, openLoginModal, openProfileModal } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -100,69 +105,113 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
           {/* USER SWITCHER / PERSONA DROPDOWN */}
           <div className="flex items-center space-x-3">
-            <div className="relative">
-              <button
-                id="user-persona-btn"
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
-              >
-                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-                  {currentUser?.full_name ? currentUser.full_name[0] : 'U'}
-                </div>
-                <div className="hidden sm:block text-xs">
-                  <div className="font-semibold text-slate-800 truncate max-w-[140px]">
-                    {currentUser?.full_name || 'Chưa đăng nhập'}
-                  </div>
-                  <div className="text-slate-500 text-[11px]">
-                    {currentUser ? getRoleBadge(currentUser.roles) : ''}
-                  </div>
-                </div>
-                <ChevronDown className="w-4 h-4 text-slate-500" />
-              </button>
-
-              {userDropdownOpen && (
-                <div
-                  id="user-persona-dropdown"
-                  className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95"
+            {currentUser ? (
+              <div className="relative">
+                <button
+                  id="user-persona-btn"
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
                 >
-                  <div className="px-4 py-2 border-b border-slate-100">
-                    <p className="text-xs font-medium text-slate-500">Chuyển đổi vai trò kiểm thử (RBAC):</p>
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
+                    {currentUser?.full_name ? currentUser.full_name[0] : 'U'}
                   </div>
-                  <div className="py-1">
-                    {availableUsers.map(user => (
+                  <div className="hidden sm:block text-xs">
+                    <div className="font-semibold text-slate-800 truncate max-w-[140px]">
+                      {currentUser?.full_name || 'Chưa đăng nhập'}
+                    </div>
+                    <div className="text-slate-500 text-[11px]">
+                      {currentUser ? getRoleBadge(currentUser.roles) : ''}
+                    </div>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-slate-500" />
+                </button>
+
+                {userDropdownOpen && (
+                  <div
+                    id="user-persona-dropdown"
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95"
+                  >
+                    <div className="px-4 py-2 border-b border-slate-100">
+                      <div className="font-bold text-slate-900 text-xs truncate">{currentUser.full_name}</div>
+                      <div className="text-[11px] text-slate-500 font-mono truncate">{currentUser.email}</div>
+                      <div className="mt-1">{getRoleBadge(currentUser.roles)}</div>
+                    </div>
+
+                    <div className="py-1 border-b border-slate-100">
                       <button
-                        key={user.id}
                         onClick={() => {
-                          loginAs(user);
+                          setUserDropdownOpen(false);
+                          openProfileModal();
+                        }}
+                        className="w-full text-left px-4 py-2 text-xs flex items-center space-x-2 text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <User className="w-4 h-4 text-blue-600" />
+                        <span>Hồ sơ cán bộ & Đổi mật khẩu</span>
+                      </button>
+                    </div>
+
+                    <div className="px-4 pt-2 pb-1">
+                      <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                        Chuyển đổi vai trò kiểm thử (RBAC):
+                      </p>
+                    </div>
+
+                    <div className="py-1">
+                      {availableUsers.map(user => (
+                        <button
+                          key={user.id}
+                          onClick={() => {
+                            loginAs(user);
+                            setUserDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-xs flex flex-col hover:bg-blue-50 transition-colors ${
+                            currentUser?.id === user.id ? 'bg-blue-50 font-semibold' : ''
+                          }`}
+                        >
+                          <span className="text-slate-900 font-medium">{user.full_name}</span>
+                          <div className="flex items-center space-x-2 mt-0.5">
+                            {getRoleBadge(user.roles)}
+                            <span className="text-slate-400 text-[10px] truncate max-w-[120px]">{user.email}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="border-t border-slate-100 mt-1 pt-1 px-2 space-y-0.5">
+                      <button
+                        onClick={() => {
+                          setUserDropdownOpen(false);
+                          openLoginModal();
+                        }}
+                        className="w-full flex items-center space-x-2 px-3 py-1.5 text-xs text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        <span>Đăng nhập tài khoản khác...</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          logout();
                           setUserDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2 text-xs flex flex-col hover:bg-blue-50 transition-colors ${
-                          currentUser?.id === user.id ? 'bg-blue-50 font-semibold' : ''
-                        }`}
+                        className="w-full flex items-center space-x-2 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
                       >
-                        <span className="text-slate-900 font-medium">{user.full_name}</span>
-                        <div className="flex items-center space-x-2 mt-0.5">
-                          {getRoleBadge(user.roles)}
-                          <span className="text-slate-400 text-[10px]">{user.email}</span>
-                        </div>
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Đăng xuất phiên làm việc</span>
                       </button>
-                    ))}
+                    </div>
                   </div>
-                  <div className="border-t border-slate-100 mt-1 pt-1 px-2">
-                    <button
-                      onClick={() => {
-                        logout();
-                        setUserDropdownOpen(false);
-                      }}
-                      className="w-full flex items-center space-x-2 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                      <span>Đăng xuất phiên làm việc</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={openLoginModal}
+                className="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Đăng nhập</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -262,6 +311,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto text-center text-xs text-slate-500">
         <p>© 2026 Trường Cao đẳng X - Hệ thống Quản lý Thiết bị & Cơ sở Vật chất (Đã kết nối Supabase PostgreSQL & Express REST API)</p>
       </footer>
+
+      {/* AUTHENTICATION & PROFILE MODALS */}
+      <LoginModal />
+      <UserProfileModal />
     </div>
   );
 };

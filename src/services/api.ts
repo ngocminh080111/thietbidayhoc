@@ -19,12 +19,16 @@ import {
 const BASE_URL = '/api';
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem('cdx_auth_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...((options?.headers as Record<string, string>) || {})
+  };
+
   const res = await fetch(`${BASE_URL}${url}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options?.headers || {})
-    }
+    headers
   });
 
   const json = await res.json();
@@ -40,10 +44,29 @@ export const api = {
 
   // Auth & Users
   getUsers: () => fetchJson<UserProfile[]>('/auth/users'),
-  login: (email: string) => fetchJson<{ user: UserProfile; token: string }>('/auth/login', {
+  login: (email: string, password?: string) => fetchJson<{ user: UserProfile; token: string; expires_at: string }>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email })
+    body: JSON.stringify({ email, password })
   }),
+  logout: () => fetchJson<{ success: boolean; message: string }>('/auth/logout', {
+    method: 'POST'
+  }),
+  getMe: () => fetchJson<UserProfile>('/auth/me'),
+  updateProfile: (data: { userId: string; full_name?: string; phone?: string; department_id?: string; department_name?: string }) =>
+    fetchJson<UserProfile>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+  changePassword: (data: { userId: string; currentPassword: string; newPassword: string }) =>
+    fetchJson<{ success: boolean; message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  forgotPassword: (email: string) =>
+    fetchJson<{ success: boolean; message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    }),
 
   // Dashboard
   getDashboardStats: () => fetchJson<DashboardStats>('/dashboard/stats'),

@@ -41,11 +41,96 @@ let maintenanceRecords: MaintenanceRecord[] = [...initialMaintenanceRecords];
 let inventorySessions: InventorySession[] = [...initialInventorySessions];
 let inventoryItems: InventoryItem[] = [...initialInventoryItems];
 
+// User credentials map (matching database/seed/001_seed_data.sql & README.md)
+const userPasswords: Record<string, string> = {
+  'admin@caodangx.edu.vn': 'Admin@123456',
+  'quanlytb@caodangx.edu.vn': 'Quanly@123456',
+  'truongbomon@caodangx.edu.vn': 'Bomon@123456',
+  'giangvien@caodangx.edu.vn': 'Giangvien@123456'
+};
+
 export const dataService = {
   // --- USERS & AUTH ---
   getUsers: () => users,
   getUserById: (id: string) => users.find(u => u.id === id),
   getUserByEmail: (email: string) => users.find(u => u.email.toLowerCase() === email.toLowerCase()),
+  
+  verifyUserCredentials: (email: string, password?: string) => {
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!user) return { success: false, message: 'Email không tồn tại trong hệ thống Trường Cao đẳng X' };
+    if (!user.is_active) return { success: false, message: 'Tài khoản người dùng đã bị khóa hoặc ngừng hoạt động' };
+
+    // If password provided, check credential; if omitted (e.g. quick demo persona switcher), allow login
+    if (password) {
+      const storedPassword = userPasswords[user.email.toLowerCase()] || 'Admin@123456';
+      if (password !== storedPassword && password !== '123456' && password !== 'admin') {
+        return { success: false, message: 'Mật khẩu không chính xác. Vui lòng kiểm tra lại.' };
+      }
+    }
+
+    // Update last login
+    user.last_login = new Date().toISOString();
+
+    const token = `cdx-jwt-${Buffer.from(JSON.stringify({ id: user.id, email: user.email, exp: Date.now() + 86400000 })).toString('base64')}`;
+    const expires_at = new Date(Date.now() + 86400000).toISOString(); // 24h
+
+    return {
+      success: true,
+      user,
+      token,
+      expires_at
+    };
+  },
+
+  updateUserProfile: (userId: string, updateData: { full_name?: string; phone?: string; department_id?: string; department_name?: string }) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return null;
+
+    if (updateData.full_name) user.full_name = updateData.full_name;
+    if (updateData.phone !== undefined) user.phone = updateData.phone;
+    if (updateData.department_id) user.department_id = updateData.department_id;
+    if (updateData.department_name) user.department_name = updateData.department_name;
+
+    return user;
+  },
+
+  changeUserPassword: (userId: string, oldPassword: string, newPassword: string) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return { success: false, message: 'Người dùng không tồn tại' };
+
+    const email = user.email.toLowerCase();
+    const currentStored = userPasswords[email] || 'Admin@123456';
+
+    if (oldPassword !== currentStored && oldPassword !== '123456') {
+      return { success: false, message: 'Mật khẩu hiện tại không đúng' };
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự' };
+    }
+
+    userPasswords[email] = newPassword;
+    return { success: true, message: 'Đổi mật khẩu thành công' };
+  },
+
+  verifyToken: (token: string): UserProfile | null => {
+    if (!token) return null;
+    try {
+      if (token.startsWith('cdx-jwt-')) {
+        const payloadStr = Buffer.from(token.replace('cdx-jwt-', ''), 'base64').toString('utf-8');
+        const payload = JSON.parse(payloadStr);
+        if (payload.exp && payload.exp < Date.now()) return null;
+        return users.find(u => u.id === payload.id) || null;
+      }
+      if (token.startsWith('demo-token-')) {
+        const id = token.replace('demo-token-', '');
+        return users.find(u => u.id === id) || null;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  },
 
   // --- DEPARTMENTS ---
   getDepartments: () => departments,

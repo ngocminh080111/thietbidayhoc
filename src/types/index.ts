@@ -37,7 +37,14 @@ export interface UserProfile {
   department_name?: string;
   roles: RoleName[];
   is_active: boolean;
+  last_login?: string;
   created_at?: string;
+}
+
+export interface AuthSession {
+  user: UserProfile;
+  token: string;
+  expires_at: string;
 }
 
 export interface Room {
