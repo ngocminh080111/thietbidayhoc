@@ -14,6 +14,8 @@ import { DamagesView } from './components/damages/DamagesView.tsx';
 import { MaintenanceView } from './components/maintenance/MaintenanceView.tsx';
 import { InventoryView } from './components/inventory/InventoryView.tsx';
 import { UsersView } from './components/users/UsersView.tsx';
+import { DepreciationReportView } from './components/reports/DepreciationReportView.tsx';
+import { AuditLogsView } from './components/audit/AuditLogsView.tsx';
 import { Equipment } from './types/index.ts';
 
 function MainApp() {
@@ -89,6 +91,8 @@ function MainApp() {
       )}
       {currentTab === 'maintenance' && <MaintenanceView />}
       {currentTab === 'inventory' && <InventoryView />}
+      {currentTab === 'reports' && <DepreciationReportView />}
+      {currentTab === 'audit' && <AuditLogsView />}
       {currentTab === 'users' && <UsersView />}
     </AppLayout>
   );

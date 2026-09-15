@@ -17,11 +17,19 @@ import {
   XCircle,
   HelpCircle,
   Wrench,
-  Download
+  Download,
+  QrCode,
+  Printer,
+  FileSpreadsheet,
+  ScanLine
 } from 'lucide-react';
 import { Equipment, EquipmentCategory, Room } from '../../types/index.ts';
 import { api } from '../../services/api.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
+import { EquipmentLabelModal } from './EquipmentLabelModal.tsx';
+import { BatchLabelPrintModal } from './BatchLabelPrintModal.tsx';
+import { ExcelImportExportModal } from './ExcelImportExportModal.tsx';
+import { EquipmentQRScannerModal } from './EquipmentQRScannerModal.tsx';
 
 interface EquipmentViewProps {
   onOpenTransferModal?: (equipment: Equipment) => void;
@@ -47,6 +55,12 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
 
   // Selected for detail modal
   const [detailItem, setDetailItem] = useState<Equipment | null>(null);
+
+  // Phase 5 Modals
+  const [labelEquipment, setLabelEquipment] = useState<Equipment | null>(null);
+  const [showBatchPrint, setShowBatchPrint] = useState(false);
+  const [showExcelModal, setShowExcelModal] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   // Create/Edit modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -172,7 +186,34 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick QR Scanner */}
+          <button
+            onClick={() => setShowQRScanner(true)}
+            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg border border-slate-300 transition-colors shadow-2xs"
+          >
+            <ScanLine className="w-4 h-4 text-blue-600" />
+            <span>Quét QR tra cứu</span>
+          </button>
+
+          {/* Excel Import / Export */}
+          <button
+            onClick={() => setShowExcelModal(true)}
+            className="flex items-center space-x-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-lg border border-emerald-200 transition-colors shadow-2xs"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Nhập / Xuất Excel</span>
+          </button>
+
+          {/* Batch Print Labels */}
+          <button
+            onClick={() => setShowBatchPrint(true)}
+            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg border border-slate-300 transition-colors shadow-2xs"
+          >
+            <Printer className="w-4 h-4 text-slate-600" />
+            <span>In tem hàng loạt A4</span>
+          </button>
+
           {canManageEquipment && (
             <button
               id="create-equipment-btn"
@@ -317,6 +358,13 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+                        <button
+                          onClick={() => setLabelEquipment(eq)}
+                          title="In tem dán nhận diện (QR + Barcode)"
+                          className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded"
+                        >
+                          <QrCode className="w-4 h-4" />
+                        </button>
                         {canManageEquipment && (
                           <button
                             onClick={() => onOpenTransferModal && onOpenTransferModal(eq)}
@@ -395,7 +443,19 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+            <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  const currentEq = detailItem;
+                  setDetailItem(null);
+                  setLabelEquipment(currentEq);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-lg border border-blue-200 transition-colors"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                In tem decal nhận dạng
+              </button>
               <button
                 onClick={() => setDetailItem(null)}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
@@ -517,6 +577,47 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
             </form>
           </div>
         </div>
+      )}
+
+      {/* PHASE 5: EQUIPMENT LABEL MODAL (SINGLE QR/BARCODE) */}
+      {labelEquipment && (
+        <EquipmentLabelModal
+          equipment={labelEquipment}
+          onClose={() => setLabelEquipment(null)}
+        />
+      )}
+
+      {/* PHASE 5: BATCH LABEL PRINT MODAL (A4 MULTI-GRID) */}
+      {showBatchPrint && (
+        <BatchLabelPrintModal
+          equipmentList={equipmentList}
+          rooms={rooms}
+          onClose={() => setShowBatchPrint(false)}
+        />
+      )}
+
+      {/* PHASE 5: EXCEL IMPORT & EXPORT MODAL */}
+      {showExcelModal && (
+        <ExcelImportExportModal
+          equipmentList={equipmentList}
+          rooms={rooms}
+          categories={categories}
+          onClose={() => setShowExcelModal(false)}
+          onImportSuccess={() => {
+            loadData();
+          }}
+        />
+      )}
+
+      {/* PHASE 5: QR SCANNER MODAL */}
+      {showQRScanner && (
+        <EquipmentQRScannerModal
+          onClose={() => setShowQRScanner(false)}
+          onSelectEquipment={(eq) => {
+            setShowQRScanner(false);
+            setDetailItem(eq);
+          }}
+        />
       )}
     </div>
   );

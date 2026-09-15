@@ -219,9 +219,144 @@ export interface DashboardStats {
   by_status: { status: EquipmentStatus; count: number }[];
 }
 
+export interface AuditLog {
+  id: string;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  action: 'LOGIN' | 'CREATE' | 'UPDATE' | 'DELETE' | 'TRANSFER' | 'IMPORT' | 'EXPORT' | 'STATUS_CHANGE';
+  entity_type: 'EQUIPMENT' | 'ROOM' | 'DAMAGE_REPORT' | 'MAINTENANCE' | 'INVENTORY' | 'AUTH' | 'SYSTEM';
+  entity_id: string;
+  entity_name?: string;
+  old_data?: Record<string, any> | null;
+  new_data?: Record<string, any> | null;
+  ip_address?: string;
+  created_at: string;
+}
+
+export interface DepreciationReportItem {
+  id: string;
+  equipment_code: string;
+  name: string;
+  category_name: string;
+  room_code: string;
+  department_name: string;
+  entry_date?: string;
+  years_in_use: number;
+  original_price: number;
+  depreciation_rate_percent: number; // e.g. 10% per year
+  accumulated_depreciation: number;
+  remaining_value: number;
+  condition: EquipmentCondition;
+  status: EquipmentStatus;
+  is_fully_depreciated: boolean;
+  recommendation: 'TIEP_TUC_SU_DUNG' | 'BAO_DUONG' | 'THANH_LY' | 'THEO_DOI';
+}
+
+export interface DepreciationSummary {
+  total_original_price: number;
+  total_accumulated_depreciation: number;
+  total_remaining_value: number;
+  fully_depreciated_count: number;
+  recommended_liquidation_count: number;
+  by_department: {
+    department_id: string;
+    department_name: string;
+    count: number;
+    original_price: number;
+    remaining_value: number;
+  }[];
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   message?: string;
   error?: string;
+}
+
+// ==============================================================================
+// PHASE 6 TYPES: NOTIFICATIONS, LIQUIDATION, VENDORS & PREVENTIVE SCHEDULES
+// ==============================================================================
+
+export type NotificationType =
+  | 'DAMAGE_ALERT'
+  | 'WARRANTY_EXPIRING'
+  | 'MAINTENANCE_DUE'
+  | 'INVENTORY_ALERT'
+  | 'LIQUIDATION_SUGGESTION'
+  | 'SYSTEM';
+
+export type NotificationSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  severity: NotificationSeverity;
+  target_id?: string;
+  target_type?: 'EQUIPMENT' | 'DAMAGE_REPORT' | 'INVENTORY' | 'MAINTENANCE';
+  target_code?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface Vendor {
+  id: string;
+  code: string;
+  name: string;
+  tax_code?: string;
+  contact_person: string;
+  phone: string;
+  email: string;
+  address: string;
+  rating: number; // 1 to 5
+  equipment_count?: number;
+  active_contracts?: number;
+  is_active: boolean;
+  notes?: string;
+  created_at: string;
+}
+
+export interface LiquidationItemDetail {
+  equipment_id: string;
+  equipment_code: string;
+  name: string;
+  original_price: number;
+  remaining_value: number;
+  condition: string;
+  reason: string;
+}
+
+export interface LiquidationRecord {
+  id: string;
+  decision_number: string;
+  title: string;
+  decision_date: string;
+  council_leader: string;
+  council_members: string[];
+  method: 'DAU_GIA' | 'HUY_BO' | 'TAN_DUNG_LINH_KIEN' | 'BAN_GIAO_DON_VI_KHAC';
+  total_original_price: number;
+  recovered_value: number;
+  equipment_count: number;
+  equipment_items: LiquidationItemDetail[];
+  status: 'CHO_DUYET' | 'DA_PHE_DUYET' | 'HOAN_TAT';
+  signed_by?: string;
+  note?: string;
+  created_at: string;
+}
+
+export interface MaintenanceSchedule {
+  id: string;
+  title: string;
+  scope_type: 'ALL' | 'ROOM' | 'CATEGORY';
+  scope_id?: string;
+  scope_name: string;
+  frequency_months: number;
+  last_maintenance_date?: string;
+  next_scheduled_date: string;
+  assigned_to_name: string;
+  status: 'CHO_THUC_HIEN' | 'DANG_THUC_HIEN' | 'DA_HOAN_THANH';
+  notes?: string;
 }

@@ -21,7 +21,9 @@ import {
   BellRing,
   User,
   KeyRound,
-  LogIn
+  LogIn,
+  TrendingDown,
+  History
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import { LoginModal } from '../auth/LoginModal.tsx';
@@ -35,6 +37,8 @@ export type NavTab =
   | 'damages'
   | 'maintenance'
   | 'inventory'
+  | 'reports'
+  | 'audit'
   | 'users';
 
 interface AppLayoutProps {
@@ -60,6 +64,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     { id: 'damages', label: 'Báo hỏng & Sự cố', icon: AlertTriangle },
     { id: 'maintenance', label: 'Bảo dưỡng & Sửa chữa', icon: Wrench },
     { id: 'inventory', label: 'Kiểm kê tài sản', icon: ClipboardCheck },
+    { id: 'reports', label: 'Báo cáo & Khấu hao', icon: TrendingDown },
+    { id: 'audit', label: 'Nhật ký kiểm toán', icon: History },
     { id: 'users', label: 'Người dùng & Phân quyền', icon: Users }
   ];
 

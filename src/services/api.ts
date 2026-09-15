@@ -13,7 +13,14 @@ import {
   InventorySession,
   InventoryItem,
   UserProfile,
-  DashboardStats
+  DashboardStats,
+  AuditLog,
+  DepreciationReportItem,
+  DepreciationSummary,
+  AppNotification,
+  Vendor,
+  LiquidationRecord,
+  MaintenanceSchedule
 } from '../types/index.ts';
 
 const BASE_URL = '/api';
@@ -191,5 +198,81 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
-  getInventoryItems: (sessionId: string) => fetchJson<InventoryItem[]>(`/inventory/sessions/${sessionId}/items`)
+  getInventoryItems: (sessionId: string) => fetchJson<InventoryItem[]>(`/inventory/sessions/${sessionId}/items`),
+
+  // Audit Logs (Nhật ký kiểm toán)
+  getAuditLogs: (filters?: { action?: string; entity_type?: string; search?: string; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (filters?.action && filters.action !== 'ALL') searchParams.append('action', filters.action);
+    if (filters?.entity_type && filters.entity_type !== 'ALL') searchParams.append('entity_type', filters.entity_type);
+    if (filters?.search) searchParams.append('search', filters.search);
+    if (filters?.limit) searchParams.append('limit', String(filters.limit));
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return fetchJson<AuditLog[]>(`/audit-logs${query}`);
+  },
+  logAudit: (data: Partial<AuditLog>) => fetchJson<AuditLog>('/audit-logs', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+
+  // Batch Import from Excel
+  importEquipmentBatch: (items: Array<any>, user_id?: string, user_name?: string) => {
+    return fetchJson<{ success: boolean; imported_count: number; errors: string[]; imported: Equipment[] }>('/equipment/batch-import', {
+      method: 'POST',
+      body: JSON.stringify({ items, user_id, user_name })
+    });
+  },
+
+  // Asset Depreciation & Financial Reports
+  getDepreciationReport: () => fetchJson<{ items: DepreciationReportItem[]; summary: DepreciationSummary }>('/reports/depreciation'),
+
+  // ==============================================================================
+  // PHASE 6: NOTIFICATIONS & SYSTEM ALERTS
+  // ==============================================================================
+  getNotifications: () => fetchJson<AppNotification[]>('/notifications'),
+  markNotificationRead: (id: string) => fetchJson<{ success: boolean }>(`/notifications/${id}/read`, {
+    method: 'PATCH'
+  }),
+  markAllNotificationsRead: () => fetchJson<{ success: boolean }>('/notifications/read-all', {
+    method: 'POST'
+  }),
+
+  // ==============================================================================
+  // PHASE 6: VENDORS & SUPPLIERS
+  // ==============================================================================
+  getVendors: () => fetchJson<Vendor[]>('/vendors'),
+  createVendor: (data: Partial<Vendor>) => fetchJson<Vendor>('/vendors', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateVendor: (id: string, data: Partial<Vendor>) => fetchJson<Vendor>(`/vendors/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+
+  // ==============================================================================
+  // PHASE 6: LIQUIDATION RECORDS & WORKFLOW
+  // ==============================================================================
+  getLiquidations: () => fetchJson<LiquidationRecord[]>('/liquidations'),
+  createLiquidation: (data: Partial<LiquidationRecord>) => fetchJson<LiquidationRecord>('/liquidations', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  approveLiquidation: (id: string, signed_by?: string) => fetchJson<LiquidationRecord>(`/liquidations/${id}/approve`, {
+    method: 'POST',
+    body: JSON.stringify({ signed_by })
+  }),
+
+  // ==============================================================================
+  // PHASE 6: PREVENTIVE MAINTENANCE SCHEDULES
+  // ==============================================================================
+  getMaintenanceSchedules: () => fetchJson<MaintenanceSchedule[]>('/maintenance-schedules'),
+  createMaintenanceSchedule: (data: Partial<MaintenanceSchedule>) => fetchJson<MaintenanceSchedule>('/maintenance-schedules', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateMaintenanceSchedule: (id: string, data: Partial<MaintenanceSchedule>) => fetchJson<MaintenanceSchedule>(`/maintenance-schedules/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  })
 };

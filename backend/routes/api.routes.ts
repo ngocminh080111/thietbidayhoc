@@ -280,3 +280,173 @@ apiRouter.post('/inventory/sessions', (req: Request, res: Response) => {
 apiRouter.get('/inventory/sessions/:id/items', (req: Request, res: Response) => {
   res.json({ success: true, data: dataService.getInventoryItems(req.params.id) });
 });
+
+// 11. Audit Logs (Nhật ký kiểm toán)
+apiRouter.get('/audit-logs', (req: Request, res: Response) => {
+  const { action, entity_type, search, limit } = req.query;
+  const logs = dataService.getAuditLogs({
+    action: action as string,
+    entity_type: entity_type as string,
+    search: search as string,
+    limit: limit ? parseInt(limit as string) : undefined
+  });
+  res.json({ success: true, data: logs });
+});
+
+apiRouter.post('/audit-logs', (req: Request, res: Response) => {
+  try {
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+    const log = dataService.logAudit({ ...req.body, ip_address: ip });
+    res.status(201).json({ success: true, data: log });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 12. Batch Import Equipment from Excel
+apiRouter.post('/equipment/batch-import', (req: Request, res: Response) => {
+  try {
+    const { items, user_id, user_name } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Danh sách thiết bị nhập khẩu không hợp lệ' });
+    }
+    const result = dataService.importEquipmentBatch(items, user_id, user_name);
+    res.status(201).json({ success: true, data: result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 13. Reports & Depreciation (Khấu hao & Báo cáo tài chính)
+apiRouter.get('/reports/depreciation', async (req: Request, res: Response) => {
+  try {
+    const report = await dataService.getDepreciationReport();
+    res.json({ success: true, data: report });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==============================================================================
+// PHASE 6: NOTIFICATIONS & SYSTEM ALERTS
+// ==============================================================================
+apiRouter.get('/notifications', async (req: Request, res: Response) => {
+  try {
+    const list = await dataService.getNotifications();
+    res.json({ success: true, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.patch('/notifications/:id/read', async (req: Request, res: Response) => {
+  try {
+    const ok = await dataService.markNotificationRead(req.params.id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.post('/notifications/read-all', async (req: Request, res: Response) => {
+  try {
+    const ok = await dataService.markAllNotificationsRead();
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==============================================================================
+// PHASE 6: VENDORS & SUPPLIERS
+// ==============================================================================
+apiRouter.get('/vendors', async (req: Request, res: Response) => {
+  try {
+    const list = await dataService.getVendors();
+    res.json({ success: true, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.post('/vendors', async (req: Request, res: Response) => {
+  try {
+    const vendor = await dataService.createVendor(req.body);
+    res.status(201).json({ success: true, data: vendor });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.put('/vendors/:id', async (req: Request, res: Response) => {
+  try {
+    const updated = await dataService.updateVendor(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ success: false, message: 'Không tìm thấy nhà cung cấp' });
+    res.json({ success: true, data: updated });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ==============================================================================
+// PHASE 6: LIQUIDATION RECORDS & WORKFLOW
+// ==============================================================================
+apiRouter.get('/liquidations', async (req: Request, res: Response) => {
+  try {
+    const list = await dataService.getLiquidations();
+    res.json({ success: true, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.post('/liquidations', async (req: Request, res: Response) => {
+  try {
+    const item = await dataService.createLiquidation(req.body);
+    res.status(201).json({ success: true, data: item });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.post('/liquidations/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const { signed_by } = req.body;
+    const item = await dataService.approveLiquidation(req.params.id, signed_by || 'Ban Giám Hiệu');
+    if (!item) return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ thanh lý' });
+    res.json({ success: true, data: item });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ==============================================================================
+// PHASE 6: PREVENTIVE MAINTENANCE SCHEDULES
+// ==============================================================================
+apiRouter.get('/maintenance-schedules', async (req: Request, res: Response) => {
+  try {
+    const list = await dataService.getMaintenanceSchedules();
+    res.json({ success: true, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.post('/maintenance-schedules', async (req: Request, res: Response) => {
+  try {
+    const item = await dataService.createMaintenanceSchedule(req.body);
+    res.status(201).json({ success: true, data: item });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+apiRouter.put('/maintenance-schedules/:id', async (req: Request, res: Response) => {
+  try {
+    const updated = await dataService.updateMaintenanceSchedule(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ success: false, message: 'Không tìm thấy lịch bảo trì' });
+    res.json({ success: true, data: updated });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
