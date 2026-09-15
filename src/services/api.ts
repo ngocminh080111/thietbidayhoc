@@ -21,17 +21,56 @@ const BASE_URL = '/api';
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem('cdx_auth_token');
   const headers: Record<string, string> = {
+    'Accept': 'application/json',
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...((options?.headers as Record<string, string>) || {})
   };
 
-  const res = await fetch(`${BASE_URL}${url}`, {
-    ...options,
-    headers
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${url}`, {
+      ...options,
+      headers
+    });
+  } catch (networkErr: any) {
+    console.warn(`[Network error calling ${url}]:`, networkErr);
+    throw new Error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại.');
+  }
 
-  const json = await res.json();
+  const contentType = res.headers.get('content-type') || '';
+  const text = await res.text();
+
+  if (!text || text.trim() === '') {
+    if (!res.ok) {
+      throw new Error(`Máy chủ phản hồi mã lỗi ${res.status}`);
+    }
+    return {} as T;
+  }
+
+  // Detect HTML or proxy error responses like "The page cannot be loaded..."
+  const trimmed = text.trim();
+  if (
+    trimmed.startsWith('<') ||
+    trimmed.startsWith('The page') ||
+    trimmed.startsWith('<!DOCTYPE') ||
+    (!contentType.includes('application/json') && !trimmed.startsWith('{') && !trimmed.startsWith('['))
+  ) {
+    console.warn(`[Non-JSON API response from ${url} (status: ${res.status})]:`, text.slice(0, 150));
+    if (!res.ok) {
+      throw new Error(`Máy chủ đang khởi động hoặc tạm thời gián đoạn (${res.status}). Vui lòng thử lại sau vài giây.`);
+    }
+    throw new Error('Máy chủ phản hồi dữ liệu không đúng chuẩn JSON. Vui lòng thử lại.');
+  }
+
+  let json: any;
+  try {
+    json = JSON.parse(text);
+  } catch (parseErr) {
+    console.error(`[JSON parse error for ${url}]:`, text.slice(0, 120));
+    throw new Error('Dữ liệu từ máy chủ không đúng chuẩn JSON. Vui lòng thử lại.');
+  }
+
   if (!res.ok || json.success === false) {
     throw new Error(json.message || json.error || 'Yêu cầu xử lý thất bại');
   }

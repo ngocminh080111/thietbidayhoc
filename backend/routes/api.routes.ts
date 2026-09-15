@@ -17,12 +17,14 @@ apiRouter.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// 2. Auth & Users
-apiRouter.get('/auth/users', (req: Request, res: Response) => {
+// 2. Auth & Users (cung cấp cả alias /users và /login)
+const getUsersHandler = (req: Request, res: Response) => {
   res.json({ success: true, data: dataService.getUsers() });
-});
+};
+apiRouter.get('/auth/users', getUsersHandler);
+apiRouter.get('/users', getUsersHandler);
 
-apiRouter.post('/auth/login', (req: Request, res: Response) => {
+const loginHandler = (req: Request, res: Response) => {
   const { email, password } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'Vui lòng nhập email đăng nhập' });
@@ -41,7 +43,9 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
       expires_at: result.expires_at
     }
   });
-});
+};
+apiRouter.post('/auth/login', loginHandler);
+apiRouter.post('/login', loginHandler);
 
 apiRouter.get('/auth/me', (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;

@@ -26,6 +26,23 @@ async function startServer() {
   // Mount API routes FIRST before frontend middleware
   app.use('/api', apiRouter);
 
+  // Fallback for unmatched /api routes -> ALWAYS return JSON 404, NEVER fall through to HTML!
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({
+      success: false,
+      message: `API endpoint không tồn tại: ${req.method} ${req.originalUrl}`
+    });
+  });
+
+  // Central error handler for /api to always return JSON
+  app.use('/api', (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('[API Error]:', err);
+    res.status(err.status || 500).json({
+      success: false,
+      message: err.message || 'Lỗi xử lý yêu cầu phía máy chủ'
+    });
+  });
+
   // Vite middleware for development vs static build in production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

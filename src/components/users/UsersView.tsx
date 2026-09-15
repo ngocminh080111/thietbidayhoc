@@ -46,7 +46,7 @@ export const UsersView: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-sm">
-                  {u.full_name[0]}
+                  {u.full_name ? u.full_name[0] : 'U'}
                 </div>
                 {isCurrent && (
                   <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-600 text-white">
