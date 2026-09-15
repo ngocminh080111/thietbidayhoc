@@ -1,0 +1,6 @@
+{
+  "name": "Quản lý Thiết bị Trường Cao đẳng X",
+  "description": "Hệ thống Quản lý Thiết bị và Cơ sở Vật chất Trường Cao đẳng X",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
